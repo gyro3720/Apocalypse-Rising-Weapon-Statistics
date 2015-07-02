@@ -1,3 +1,4 @@
+from requests.exceptions import HTTPError, ReadTimeout
 import json
 import praw
 import re
@@ -5,8 +6,7 @@ import sqlite3
 import time
 
 
-def main(username, password, user_agent):
-
+def main():
     # Open the log database
     sql = sqlite3.connect("log.db")
     cur = sql.cursor()
@@ -17,25 +17,36 @@ def main(username, password, user_agent):
     conn = sqlite3.connect("weapons.db")
     c = conn.cursor()
 
+    # Get the user information and login
+    with open("info.json") as info:
+        info = json.load(info)
+
+        username = info["Reddit"]["username"]
+        password = info["Reddit"]["password"]
+        user_agent = info["Reddit"]["user_agent"]
+
     r = praw.Reddit(user_agent=user_agent)
-    r.login(username, password)
+    r.login(username, password, disable_warning=True)
 
     while True:
-        get_comments(cur, sql, c, r, username)
+        try:
+            get_comments(cur, sql, c, r, username)
+        except (praw.errors.RateLimitExceeded, praw.errors.HTTPException, HTTPError, ReadTimeout) as e:
+            print(e)
         time.sleep(3)
 
 def get_comments(cur, sql, c, r, username):
-    comments = r.get_comments("test", limit=500)
+    comments = r.get_comments("apocalypserising", limit=100)
 
     # Cycle through every comment
     for comment in comments:
-        # Check if the comment ID hasn't been replied to
-        cur.execute("SELECT ID FROM log WHERE ID=?", [comment.id])
-        if not cur.fetchone():
-            body = comment.body.split(" ")
-            call = "/u/" + username.lower()
-            # Only check comments that called the bot
-            if body[0].lower() == call and len(body) >= 2:
+        # Only check comments that called the bot and gave at least one weapon
+        body = comment.body.split(" ")
+        call = "/u/" + username.lower()
+        if body[0].lower() == call and len(body) >= 2:
+            # Check if the comment ID hasn't been replied to
+            cur.execute("SELECT ID FROM log WHERE ID=?", [comment.id])
+            if not cur.fetchone():
                 # Get a list of valid weapons
                 list_of_rifles = []
                 list_of_melee = []
@@ -56,16 +67,9 @@ def get_comments(cur, sql, c, r, username):
                         number_of_weapons += 1
                         contains_rifle = True
 
-                contains_melee = False
-                # if number_of_weapons == 0:
-                if contains_rifle is True:
-                    while contains_melee is False:
-                        for weapon in list_of_melee:
-                            if re.search(r'(\s|^|$)' + weapon + r'(\s|^|$)', comment.body, flags=re.IGNORECASE):
-                                c.execute("SELECT * FROM Melee WHERE NAME=?", [weapon])
-                                weapon_data.append(list(c.fetchall()[0]))
-                                number_of_weapons += 1
-                                contains_melee = True
+                if contains_rifle:
+                    valid_comment(cur, sql, comment, number_of_weapons, weapon_data)
+                    time.sleep(3)
 
 def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
     print("(" + comment.id + ") " + comment.author.name + ": " + comment.body)
@@ -133,17 +137,11 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
                  "*I'm a bot. Was there an issue with this comparison? "
                  "[Message the mods](http://www.reddit.com/message/compose?to=%2Fr%2FApocalypseRising).*")
 
-    print(response)
+    comment.reply(response)
 
     timestamp = int(time.time())
     cur.execute("INSERT INTO log VALUES(?,?)", (comment.id, timestamp))
     sql.commit()
 
 if __name__ == "__main__":
-    with open("info.json") as info:
-        info = json.load(info)
-        username = info["Reddit"]["username"]
-        password = info["Reddit"]["password"]
-        user_agent = info["Reddit"]["user_agent"]
-
-    main(username, password, user_agent)
+    main()
