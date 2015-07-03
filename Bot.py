@@ -72,7 +72,7 @@ def get_comments(cur, sql, c, r, username):
                     time.sleep(3)
 
 def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
-    print("(" + comment.id + ") " + comment.author.name + ": " + comment.body)
+    print("(" + comment.id + ") " + comment.author.name + ": " + comment.body.replace("\n", " "))
 
     response = (
         "Name | Class | Damage | DPS | Fire Rate | ADS Spread | Hip Fire Spread | Recoil | Attachment Capabilities | "
