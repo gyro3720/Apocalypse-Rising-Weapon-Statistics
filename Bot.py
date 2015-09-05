@@ -32,9 +32,13 @@ def main():
         try:
             o.refresh()
             get_comments(cur, sql, c, r, username)
-        except (praw.errors.RateLimitExceeded, praw.errors.HTTPException, HTTPError, ReadTimeout) as e:
+        except (
+            praw.errors.RateLimitExceeded, praw.errors.HTTPException,
+            HTTPError, ReadTimeout
+        ) as e:
             print(e)
         time.sleep(3)
+
 
 def get_comments(cur, sql, c, r, username):
     comments = r.get_comments("apocalypserising", limit=100)
@@ -56,30 +60,41 @@ def get_comments(cur, sql, c, r, username):
                 for row in list(c.execute("SELECT NAME FROM Melee")):
                     list_of_melee.append(row[0])
 
-                # Check if the gun is valid and if so, add its data to the list and keep a total of valid guns
+                # Check if the gun is valid and if so, add its data to the list
+                # and keep a total of valid guns
                 weapon_data = []
                 number_of_weapons = 0
                 contains_rifle = False
 
                 for weapon in list_of_rifles:
-                    if re.search(r'(\s|^|$)' + weapon + r'(\s|^|$)', comment.body, flags=re.IGNORECASE):
+                    if re.search(
+                        r'(\s|^|$)' + weapon + r'(\s|^|$)', comment.body,
+                        flags=re.IGNORECASE
+                    ):
                         c.execute("SELECT * FROM Guns WHERE NAME=?", [weapon])
                         weapon_data.append(list(c.fetchall()[0]))
                         number_of_weapons += 1
                         contains_rifle = True
 
                 if contains_rifle:
-                    valid_comment(cur, sql, comment, number_of_weapons, weapon_data)
+                    valid_comment(
+                        cur, sql, comment, number_of_weapons, weapon_data
+                    )
                     time.sleep(3)
 
+
 def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
-    print("(" + comment.id + ") " + comment.author.name + ": " + comment.body.replace("\n", " "))
+    print(
+        "(" + comment.id + ") " + comment.author.name + ": " +
+        comment.body.replace("\n", " ")
+    )
 
     response = (
-        "Name | Class | Damage | DPS | Fire Rate | ADS Spread | Hip Fire Spread | Recoil | Attachment Capabilities | "
-        "Magazine Capabilities\n"
-        ":-------|:-------|:----------|:-----|:----------|:---------------|:-----------------|:--------|"
-        ":-----------------------------|:-------------------------\n"
+        "Name | Class | Damage | DPS | Fire Rate | ADS Spread | Hip Fire Spread"
+        " | Recoil | Attachment Capabilities | Magazine Capabilities\n"
+        ":-------|:-------|:----------|:-----|:----------|:---------------|"
+        ":-----------------|:--------|:-----------------------------|"
+        ":-------------------------\n"
     )
 
     if number_of_weapons > 1:
@@ -99,7 +114,7 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
                     dps = weapon[3]
             except TypeError:
                 pumpaction = ["M870", "Maverick 88"]
-                boltaction = ["Lee Einfeld", "Mosin Nagant"]
+                boltaction = ["Lee Enfield", "Mosin Nagant"]
                 if weapon[0] in pumpaction:
                     weapon[3] = "***Pump Action***"
                 if weapon[0] in boltaction:
@@ -133,10 +148,12 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
             response += str(weapon[i]) + " | "
         response += "\n"
 
-    response += ("\n* For ADS spread, hip fire spread, and recoil: **lower = better**\n\n"
-                 "---\n\n"
-                 "*I'm a bot. Was there an issue with this comparison? "
-                 "[Message the mods](http://www.reddit.com/message/compose?to=%2Fr%2FApocalypseRising).*")
+    response += (
+        "\n* For ADS spread, hip fire spread, and recoil: **lower = better**"
+        "\n\n---\n\n*I'm a bot. Was there an issue with this comparison? "
+        "[Message the mods](http://www.reddit.com/message/"
+        "compose?to=%2Fr%2FApocalypseRising).*"
+    )
 
     comment.reply(response)
 
