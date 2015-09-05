@@ -1,5 +1,6 @@
 from requests.exceptions import HTTPError, ReadTimeout
 import json
+import OAuth2Util
 import praw
 import re
 import sqlite3
@@ -22,14 +23,14 @@ def main():
         info = json.load(info)
 
         username = info["Reddit"]["username"]
-        password = info["Reddit"]["password"]
         user_agent = info["Reddit"]["user_agent"]
 
     r = praw.Reddit(user_agent=user_agent)
-    r.login(username, password, disable_warning=True)
+    o = OAuth2Util.OAuth2Util(r, server_mode=True, print_log=True)
 
     while True:
         try:
+            o.refresh()
             get_comments(cur, sql, c, r, username)
         except (praw.errors.RateLimitExceeded, praw.errors.HTTPException, HTTPError, ReadTimeout) as e:
             print(e)
