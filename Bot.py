@@ -37,7 +37,7 @@ def main():
             HTTPError, ReadTimeout
         ) as e:
             print(e)
-        time.sleep(3)
+        time.sleep(1)
 
 
 def get_comments(cur, sql, c, r, username):
@@ -97,6 +97,7 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
         ":-------------------------\n"
     )
 
+    # Comparison loop
     if number_of_weapons > 1:
         damage = 0
         dps = 0
@@ -143,6 +144,7 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
             if weapon[7] == recoil:
                 weapon[7] = "**" + str(weapon[7]) + "**"
 
+    # Create the response payload
     for weapon in weapon_data:
         for i in range(10):
             response += str(weapon[i]) + " | "
