@@ -44,7 +44,7 @@ def get_comments(cur, sql, c, r):
             # Check if the comment ID hasn't been replied to
             cur.execute("SELECT ID FROM log WHERE ID=?", [comment.id])
             if not cur.fetchone():
-                # Get a list of valid weapons
+                # Get a list of valid rifle and melee weapons
                 list_of_rifles = []
                 list_of_melee = []
                 for row in list(c.execute("SELECT NAME FROM Guns")):
@@ -54,9 +54,10 @@ def get_comments(cur, sql, c, r):
 
                 # Check if the gun is valid and if so, add its data to the list
                 # and keep a total of valid guns
-                weapon_data = []
-                number_of_weapons = 0
+                rifle_weapon_data = []
+                melee_weapon_data = []
                 contains_rifle = False
+                contains_melee = False
 
                 for weapon in list_of_rifles:
                     if re.search(
@@ -64,23 +65,38 @@ def get_comments(cur, sql, c, r):
                         flags=re.IGNORECASE
                     ):
                         c.execute("SELECT * FROM Guns WHERE NAME=?", [weapon])
-                        weapon_data.append(list(c.fetchall()[0]))
-                        number_of_weapons += 1
+                        rifle_weapon_data.append(list(c.fetchall()[0]))
                         contains_rifle = True
 
-                if contains_rifle:
-                    valid_comment(
-                        cur, sql, comment, number_of_weapons, weapon_data
+                for weapon in list_of_melee:
+                    if re.search(
+                        r'(\s|^|$)' + weapon + r'(\s|^|$)', comment.body,
+                        flags=re.IGNORECASE
+                    ):
+                        c.execute("SELECT * FROM Melee WHERE NAME=?", [weapon])
+                        melee_weapon_data.append(list(c.fetchall()[0]))
+                        contains_melee = True
+
+                if contains_rifle is True and contains_melee is False:
+                    print(
+                        "(" + comment.id + ") " + comment.author.name + ": " +
+                        comment.body.replace("\n", " ")
                     )
-                    time.sleep(3)
+                    response = build_rifle_comment(rifle_weapon_data)
+                    comment_reply(comment, cur, sql, response)
+                    time.sleep(1)
+
+                if contains_rifle is False and contains_melee is True:
+                    print(
+                        "(" + comment.id + ") " + comment.author.name + ": " +
+                        comment.body.replace("\n", " ")
+                    )
+                    response = build_melee_comment(melee_weapon_data)
+                    comment_reply(comment, cur, sql, response)
+                    time.sleep(1)
 
 
-def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
-    print(
-        "(" + comment.id + ") " + comment.author.name + ": " +
-        comment.body.replace("\n", " ")
-    )
-
+def build_rifle_comment(rifle_weapon_data):
     response = (
         "Name | Class | Damage | DPS | Fire Rate | ADS Spread | Hip Fire Spread"
         " | Recoil | Attachment Capabilities | Magazine Capabilities\n"
@@ -90,7 +106,8 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
     )
 
     # Comparison loop
-    if number_of_weapons > 1:
+    # Check the length of the array rather than keep a variable
+    if len(rifle_weapon_data) > 1:
         damage = 0
         dps = 0
         firerate = 0
@@ -99,9 +116,11 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
         recoil = 50
 
         # Find the highest/lowest stats
-        for weapon in weapon_data:
+        for weapon in rifle_weapon_data:
+            # Highest damage
             if weapon[2] > damage:
                 damage = weapon[2]
+            # Highest DPS
             try:
                 if weapon[3] > dps:
                     dps = weapon[3]
@@ -112,17 +131,21 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
                     weapon[3] = "***Pump Action***"
                 if weapon[0] in boltaction:
                     weapon[3] = "***Bolt Action***"
+            # Highest fireratae
             if weapon[4] > firerate:
                 firerate = weapon[4]
+            # Lowest ADS spread
             if weapon[5] < ads_spread:
                 ads_spread = weapon[5]
+            # Lowest hipfire spread
             if weapon[6] < hipfire_spread:
                 hipfire_spread = weapon[6]
+            # Lowest recoil
             if weapon[7] < recoil:
                 recoil = weapon[7]
 
         # Bold the highest/lowest stats
-        for weapon in weapon_data:
+        for weapon in rifle_weapon_data:
             if weapon[2] == damage:
                 weapon[2] = "**" + str(weapon[2]) + "**"
             if weapon[3] == dps:
@@ -137,7 +160,7 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
                 weapon[7] = "**" + str(weapon[7]) + "**"
 
     # Create the response payload
-    for weapon in weapon_data:
+    for weapon in rifle_weapon_data:
         for i in range(10):
             response += str(weapon[i]) + " | "
         response += "\n"
@@ -149,8 +172,51 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
         "compose?to=%2Fr%2FApocalypseRising).*"
     )
 
-    comment.reply(response)
+    return response
 
+
+def build_melee_comment(melee_weapon_data):
+    response = (
+        "Name | Damage | Speed\n"
+        ":-------|:-----------|:-------\n"
+    )
+
+    if len(melee_weapon_data) > 1:
+        damage = 0
+        speed = "slow"
+
+        # Find the best stats
+        for weapon in melee_weapon_data:
+            # Highest damage
+            if weapon[1] > damage:
+                damage = weapon[1]
+            if weapon[2] != "Slow":
+                speed = "Fast"
+
+        # Bold the best stats
+        for weapon in melee_weapon_data:
+            if weapon[1] == damage:
+                weapon[1] = "**" + str(weapon[1]) + "**"
+            if weapon[2] == speed:
+                weapon[2] = "**" + weapon[2] + "**"
+
+    for weapon in melee_weapon_data:
+        for i in range(3):
+            response += str(weapon[i]) + " | "
+        response += "\n"
+
+    response += (
+        "\n*I'm a bot. Was there an issue with this comparison? "
+        "[Message the mods](http://www.reddit.com/message/"
+        "compose?to=%2Fr%2FApocalypseRising).*"
+    )
+
+    return response
+
+
+# Reply with the response payload
+def comment_reply(comment, cur, sql, response):
+    comment.reply(response)
     timestamp = int(time.time())
     cur.execute("INSERT INTO log VALUES(?,?)", (comment.id, timestamp))
     sql.commit()
