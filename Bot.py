@@ -99,7 +99,7 @@ def valid_comment(cur, sql, comment, number_of_weapons, weapon_data):
                     dps = weapon[3]
             except TypeError:
                 pumpaction = ["M870", "Maverick 88"]
-                boltaction = ["Lee Einfeld", "Mosin Nagant"]
+                boltaction = ["Lee Enfield", "Mosin Nagant"]
                 if weapon[0] in pumpaction:
                     weapon[3] = "***Pump Action***"
                 if weapon[0] in boltaction:
