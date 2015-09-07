@@ -1,5 +1,4 @@
 from requests.exceptions import HTTPError, ReadTimeout
-import json
 import OAuth2Util
 import praw
 import re
@@ -18,20 +17,14 @@ def main():
     conn = sqlite3.connect("weapons.db")
     c = conn.cursor()
 
-    # Get the user information and login
-    with open("info.json") as info:
-        info = json.load(info)
-
-        username = info["Reddit"]["username"]
-        user_agent = info["Reddit"]["user_agent"]
-
-    r = praw.Reddit(user_agent=user_agent)
+    # Login
+    r = praw.Reddit(user_agent="Apocalypse Rising Weapon Statistics")
     o = OAuth2Util.OAuth2Util(r, server_mode=True, print_log=True)
 
     while True:
         try:
             o.refresh()
-            get_comments(cur, sql, c, r, username)
+            get_comments(cur, sql, c, r)
         except (
             praw.errors.RateLimitExceeded, praw.errors.HTTPException,
             HTTPError, ReadTimeout
@@ -40,15 +33,14 @@ def main():
         time.sleep(1)
 
 
-def get_comments(cur, sql, c, r, username):
+def get_comments(cur, sql, c, r):
     comments = r.get_comments("apocalypserising", limit=100)
 
     # Cycle through every comment
     for comment in comments:
         # Only check comments that called the bot and gave at least one weapon
         body = comment.body.split(" ")
-        call = "/u/" + username.lower()
-        if body[0].lower() == call and len(body) >= 2:
+        if body[0].lower() == "/u/weaponstatisticsbot" and len(body) >= 2:
             # Check if the comment ID hasn't been replied to
             cur.execute("SELECT ID FROM log WHERE ID=?", [comment.id])
             if not cur.fetchone():
