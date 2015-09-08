@@ -61,8 +61,8 @@ def get_comments(cur, sql, c, r):
 
                 for weapon in list_of_guns:
                     if re.search(
-                        r'(\s|^|$)' + weapon + r'(\s|^|$)', comment.body,
-                        flags=re.IGNORECASE
+                        r'(\s|^|$)' + weapon.replace("-", "") + r'(\s|^|$)',
+                        comment.body.replace("-", ""), flags=re.IGNORECASE
                     ):
                         c.execute("SELECT * FROM Guns WHERE NAME=?", [weapon])
                         gun_weapon_data.append(list(c.fetchall()[0]))
