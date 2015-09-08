@@ -44,29 +44,29 @@ def get_comments(cur, sql, c, r):
             # Check if the comment ID hasn't been replied to
             cur.execute("SELECT ID FROM log WHERE ID=?", [comment.id])
             if not cur.fetchone():
-                # Get a list of valid rifle and melee weapons
-                list_of_rifles = []
+                # Get a list of valid gun and melee weapons
+                list_of_guns = []
                 list_of_melee = []
                 for row in list(c.execute("SELECT NAME FROM Guns")):
-                    list_of_rifles.append(row[0])
+                    list_of_guns.append(row[0])
                 for row in list(c.execute("SELECT NAME FROM Melee")):
                     list_of_melee.append(row[0])
 
                 # Check if the gun is valid and if so, add its data to the list
                 # and keep a total of valid guns
-                rifle_weapon_data = []
+                gun_weapon_data = []
                 melee_weapon_data = []
-                contains_rifle = False
+                contains_gun = False
                 contains_melee = False
 
-                for weapon in list_of_rifles:
+                for weapon in list_of_guns:
                     if re.search(
                         r'(\s|^|$)' + weapon + r'(\s|^|$)', comment.body,
                         flags=re.IGNORECASE
                     ):
                         c.execute("SELECT * FROM Guns WHERE NAME=?", [weapon])
-                        rifle_weapon_data.append(list(c.fetchall()[0]))
-                        contains_rifle = True
+                        gun_weapon_data.append(list(c.fetchall()[0]))
+                        contains_gun = True
 
                 for weapon in list_of_melee:
                     if re.search(
@@ -77,16 +77,16 @@ def get_comments(cur, sql, c, r):
                         melee_weapon_data.append(list(c.fetchall()[0]))
                         contains_melee = True
 
-                if contains_rifle is True and contains_melee is False:
+                if contains_gun is True and contains_melee is False:
                     print(
                         "(" + comment.id + ") " + comment.author.name + ": " +
                         comment.body.replace("\n", " ")
                     )
-                    response = build_rifle_comment(rifle_weapon_data)
+                    response = build_gun_comment(gun_weapon_data)
                     comment_reply(comment, cur, sql, response)
                     time.sleep(1)
 
-                if contains_rifle is False and contains_melee is True:
+                if contains_gun is False and contains_melee is True:
                     print(
                         "(" + comment.id + ") " + comment.author.name + ": " +
                         comment.body.replace("\n", " ")
@@ -96,7 +96,7 @@ def get_comments(cur, sql, c, r):
                     time.sleep(1)
 
 
-def build_rifle_comment(rifle_weapon_data):
+def build_gun_comment(gun_weapon_data):
     response = (
         "Name | Class | Damage | DPS | Fire Rate | ADS Spread | Hip Fire Spread"
         " | Recoil | Attachment Capabilities | Magazine Capabilities\n"
@@ -107,7 +107,7 @@ def build_rifle_comment(rifle_weapon_data):
 
     # Comparison loop
     # Check the length of the array rather than keep a variable
-    if len(rifle_weapon_data) > 1:
+    if len(gun_weapon_data) > 1:
         damage = 0
         dps = 0
         firerate = 0
@@ -116,7 +116,7 @@ def build_rifle_comment(rifle_weapon_data):
         recoil = 50
 
         # Find the highest/lowest stats
-        for weapon in rifle_weapon_data:
+        for weapon in gun_weapon_data:
             # Highest damage
             if weapon[2] > damage:
                 damage = weapon[2]
@@ -145,7 +145,7 @@ def build_rifle_comment(rifle_weapon_data):
                 recoil = weapon[7]
 
         # Bold the highest/lowest stats
-        for weapon in rifle_weapon_data:
+        for weapon in gun_weapon_data:
             if weapon[2] == damage:
                 weapon[2] = "**" + str(weapon[2]) + "**"
             if weapon[3] == dps:
@@ -160,7 +160,7 @@ def build_rifle_comment(rifle_weapon_data):
                 weapon[7] = "**" + str(weapon[7]) + "**"
 
     # Create the response payload
-    for weapon in rifle_weapon_data:
+    for weapon in gun_weapon_data:
         for i in range(10):
             response += str(weapon[i]) + " | "
         response += "\n"
