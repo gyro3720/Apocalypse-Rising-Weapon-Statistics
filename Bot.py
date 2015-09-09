@@ -19,7 +19,7 @@ def main():
 
     # Login
     r = praw.Reddit(user_agent="Apocalypse Rising Weapon Statistics")
-    o = OAuth2Util.OAuth2Util(r, server_mode=True, print_log=True)
+    o = OAuth2Util.OAuth2Util(r, server_mode=True)
 
     while True:
         try:
@@ -107,6 +107,8 @@ def build_gun_comment(gun_weapon_data):
 
     # Comparison loop
     # Check the length of the array rather than keep a variable
+    contains_shotgun = False
+
     if len(gun_weapon_data) > 1:
         damage = 0
         dps = 0
@@ -121,16 +123,8 @@ def build_gun_comment(gun_weapon_data):
             if weapon[2] > damage:
                 damage = weapon[2]
             # Highest DPS
-            try:
-                if weapon[3] > dps:
-                    dps = weapon[3]
-            except TypeError:
-                pumpaction = ["M870", "Maverick 88"]
-                boltaction = ["Lee Enfield", "Mosin Nagant"]
-                if weapon[0] in pumpaction:
-                    weapon[3] = "***Pump Action***"
-                if weapon[0] in boltaction:
-                    weapon[3] = "***Bolt Action***"
+            if weapon[3] > dps:
+                dps = weapon[3]
             # Highest fireratae
             if weapon[4] > firerate:
                 firerate = weapon[4]
@@ -146,10 +140,28 @@ def build_gun_comment(gun_weapon_data):
 
         # Bold the highest/lowest stats
         for weapon in gun_weapon_data:
-            if weapon[2] == damage:
-                weapon[2] = "**" + str(weapon[2]) + "**"
-            if weapon[3] == dps:
-                weapon[3] = "**" + str(weapon[3]) + "**"
+            # Divide shotgun damage by number of pellets
+            if weapon[1] == "Shotgun":
+                contains_shotgun = True
+                if weapon[2] == damage:
+                    weapon[2] = "**" + str(weapon[2]) + " (" + \
+                                str(weapon[2] / 8) + "/pellet)" + "**"
+                else:
+                    weapon[2] = "**"
+            else:
+                if weapon[2] == damage:
+                    weapon[2] = "**" + str(weapon[2]) + "**"
+            # Check if the weapon's a pump action or bolt action
+            if weapon[3] == 0:
+                pumpaction = ["M870", "Maverick 88"]
+                boltaction = ["Lee Enfield", "Mosin Nagant"]
+                if weapon[0] in pumpaction:
+                    weapon[3] = "**Pump Action**"
+                if weapon[0] in boltaction:
+                    weapon[3] = "**Bolt Action**"
+            else:
+                if weapon[3] == dps:
+                    weapon[3] = "**" + str(weapon[3]) + "**"
             if weapon[4] == firerate:
                 weapon[4] = "**" + str(weapon[4]) + "**"
             if weapon[5] == ads_spread:
@@ -159,11 +171,43 @@ def build_gun_comment(gun_weapon_data):
             if weapon[7] == recoil:
                 weapon[7] = "**" + str(weapon[7]) + "**"
 
-    # Create the response payload
-    for weapon in gun_weapon_data:
-        for i in range(10):
-            response += str(weapon[i]) + " | "
-        response += "\n"
+        # Create the response payload
+        for weapon in gun_weapon_data:
+            for i in range(10):
+                response += str(weapon[i]) + " | "
+            response += "\n"
+    else:
+        # Create the response payload
+        for weapon in gun_weapon_data:
+            if weapon[1] == "Shotgun":
+                contains_shotgun = True
+                for i in range(2):
+                    response += str(weapon[i]) + " | "
+                # Damage
+                response += str(weapon[2]) + " (" + str(weapon[2] / 8) + \
+                    "/pellet) | "
+                # DPS
+                if weapon[3] == 0:
+                    response += "Pump Action | "
+                else:
+                    response += str(weapon[3]) + " | "
+                for i in range(5, 10):
+                    response += str(weapon[i]) + " | "
+            # Bolt action stuff
+            elif weapon[0] in ["Lee Enfield", "Mosin Nagant"]:
+                for i in range(3):
+                    response += str(weapon[i]) + " | "
+                # DPS
+                response += "Bolt Action | "
+                for i in range(4, 10):
+                    response += str(weapon[i]) + " | "
+            else:
+                for i in range(10):
+                    response += str(weapon[i]) + " | "
+            response += "\n"
+
+    if contains_shotgun:
+        response += "\n* For shotguns each shot contains **8** pellets"
 
     response += (
         "\n* For ADS spread, hip fire spread, and recoil: **lower = better**"
@@ -192,6 +236,7 @@ def build_melee_comment(melee_weapon_data):
                 damage = weapon[1]
             if weapon[2] != "Slow":
                 speed = "Fast"
+                break
 
         # Bold the best stats
         for weapon in melee_weapon_data:
@@ -220,6 +265,7 @@ def comment_reply(comment, cur, sql, response):
     timestamp = int(time.time())
     cur.execute("INSERT INTO log VALUES(?,?)", (comment.id, timestamp))
     sql.commit()
+
 
 if __name__ == "__main__":
     main()
