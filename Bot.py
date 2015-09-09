@@ -191,7 +191,7 @@ def build_gun_comment(gun_weapon_data):
                     response += "Pump Action | "
                 else:
                     response += str(weapon[3]) + " | "
-                for i in range(5, 10):
+                for i in range(4, 10):
                     response += str(weapon[i]) + " | "
             # Bolt action stuff
             elif weapon[0] in ["Lee Enfield", "Mosin Nagant"]:
