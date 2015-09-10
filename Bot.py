@@ -39,7 +39,7 @@ def get_comments(cur, sql, c, r):
     # Cycle through every comment
     for comment in comments:
         # Only check comments that called the bot and gave at least one weapon
-        body = comment.body.split(" ")
+        body = comment.body.lstrip().split(" ")
         if body[0].lower() == "/u/weaponstatisticsbot" and len(body) >= 2:
             # Check if the comment ID hasn't been replied to
             cur.execute("SELECT ID FROM log WHERE ID=?", [comment.id])
@@ -251,7 +251,7 @@ def build_melee_comment(melee_weapon_data):
         response += "\n"
 
     response += (
-        "\n*I'm a bot. Was there an issue with this comparison? "
+        "\n\n---\n*I'm a bot. Was there an issue with this comparison? "
         "[Message the mods](http://www.reddit.com/message/"
         "compose?to=%2Fr%2FApocalypseRising).*"
     )
