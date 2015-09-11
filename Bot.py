@@ -236,7 +236,6 @@ def build_melee_comment(melee_weapon_data):
                 damage = weapon[1]
             if weapon[2] != "Slow":
                 speed = "Fast"
-                break
 
         # Bold the best stats
         for weapon in melee_weapon_data:
