@@ -95,8 +95,8 @@ def get_comments(cur, sql, c, r):
 
 def build_gun_comment(gun_weapon_data):
     response = (
-        "Name | Class | Damage | DPS | Fire Rate | ADS Spread | Hip Fire Spread"
-        " | Recoil | Attachment Capabilities | Magazine Capabilities\n"
+        "Name | Class | Damage | DPS | Fire Rate | ADS Spread | Hip Fire "
+        "Spread | Recoil | Attachment Capabilities | Magazine Capabilities\n"
         ":-------|:-------|:----------|:-----|:----------|:---------------|"
         ":-----------------|:--------|:-----------------------------|"
         ":-------------------------\n"
