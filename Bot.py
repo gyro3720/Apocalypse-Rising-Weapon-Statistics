@@ -35,6 +35,14 @@ def main():
 def get_comments(cur, sql, c, r):
     comments = r.get_comments("apocalypserising", limit=100)
 
+    # Get a list of valid gun and melee weapons
+    list_of_guns = []
+    list_of_melee = []
+    for row in list(c.execute("SELECT NAME FROM Guns")):
+        list_of_guns.append(row[0])
+    for row in list(c.execute("SELECT NAME FROM Melee")):
+        list_of_melee.append(row[0])
+
     # Cycle through every comment
     for comment in comments:
         # Only check comments that called the bot and gave at least one weapon
@@ -43,14 +51,6 @@ def get_comments(cur, sql, c, r):
             # Check if the comment ID hasn't been replied to
             cur.execute("SELECT ID FROM log WHERE ID=?", [comment.id])
             if not cur.fetchone():
-                # Get a list of valid gun and melee weapons
-                list_of_guns = []
-                list_of_melee = []
-                for row in list(c.execute("SELECT NAME FROM Guns")):
-                    list_of_guns.append(row[0])
-                for row in list(c.execute("SELECT NAME FROM Melee")):
-                    list_of_melee.append(row[0])
-
                 # Check if the gun is valid and if so, add its data to the list
                 # and keep a total of valid guns
                 comment_body = comment.body.lower().replace("-", "") \
