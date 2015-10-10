@@ -1,7 +1,6 @@
 from requests.exceptions import HTTPError, ReadTimeout
 import OAuth2Util
 import praw
-import re
 import sqlite3
 import time
 
@@ -54,25 +53,23 @@ def get_comments(cur, sql, c, r):
 
                 # Check if the gun is valid and if so, add its data to the list
                 # and keep a total of valid guns
+                comment_body = comment.body.lower().replace("-", "") \
+                    .replace(" ", "")
                 gun_weapon_data = []
                 melee_weapon_data = []
                 contains_gun = False
                 contains_melee = False
 
                 for weapon in list_of_guns:
-                    if re.search(
-                        r'(\s|^|$)' + weapon.replace("-", "") + r'(\s|^|$)',
-                        comment.body.replace("-", ""), flags=re.IGNORECASE
-                    ):
+                    if weapon.lower().replace("-", "").replace(" ", "") in \
+                            comment_body:
                         c.execute("SELECT * FROM Guns WHERE NAME=?", [weapon])
                         gun_weapon_data.append(list(c.fetchall()[0]))
                         contains_gun = True
 
                 for weapon in list_of_melee:
-                    if re.search(
-                        r'(\s|^|$)' + weapon + r'(\s|^|$)', comment.body,
-                        flags=re.IGNORECASE
-                    ):
+                    if weapon.lower().replace("-", "").replace(" ", "") in \
+                            comment_body:
                         c.execute("SELECT * FROM Melee WHERE NAME=?", [weapon])
                         melee_weapon_data.append(list(c.fetchall()[0]))
                         contains_melee = True
